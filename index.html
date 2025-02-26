@@ -209,25 +209,49 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
       typeWriter(text, element, delay, callback);
     }
     
-    // Judgment sequence with background music adjustments:
+    // Updated Judgment sequence with fallback for iOS and fade effects for dialogue text.
     function playJudgmentThenDialogueSequence(element, callback) {
       // Fade out the background music before playing judgment audio
       fadeOutAudio(bgMusic, 500);
       judgmentAudio.play().catch(e => console.error("Judgment audio play error:", e));
-      // Wait for judgment audio to finish before continuing:
-      judgmentAudio.onended = function() {
-        // First, have Saiki say the extra line:
+      
+      let judgmentAudioEnded = false;
+      
+      function continueDialogueSequence() {
+        // Fade in dialogue text with a fade-out then fade-in effect
         sayDialogue("what was that? , anyways.", element, 50, function(){
-          // Then fade in background music as Saiki speaks and continue with his dialogue:
+          // Fade in background music as dialogue continues
           fadeInAudio(bgMusic, 500);
           sayDialogue("Hmmm, maybe you do love him.", element, 50, function(){
-            element.textContent = "";
+            // Apply fade out/in effect on dialogue text before final line
+            element.style.transition = "opacity 0.5s";
+            element.style.opacity = 0;
             setTimeout(() => {
-              sayDialogue("sigh.. well complete this final game. It's a memory match. Should be easy, right?", element, 50, callback);
+              element.textContent = "";
+              element.style.opacity = 1; // Fade back in
+              setTimeout(() => {
+                sayDialogue("sigh.. well complete this final game. It's a memory match. Should be easy, right?", element, 50, callback);
+              }, 500);
             }, 500);
           });
         });
+      }
+      
+      // Use the onended event
+      judgmentAudio.onended = function() {
+        if (!judgmentAudioEnded) {
+          judgmentAudioEnded = true;
+          continueDialogueSequence();
+        }
       };
+
+      // Fallback in case onended doesn't trigger (e.g., on iOS Safari)
+      setTimeout(() => {
+        if (!judgmentAudioEnded) {
+          judgmentAudioEnded = true;
+          continueDialogueSequence();
+        }
+      }, 7000); // Adjust timeout as needed
     }
     
     /***** GLOBAL ERROR RESPONSES *****/
@@ -412,14 +436,20 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
               playJudgmentThenDialogueSequence(dialogueTextElement, function(){
                 dialogueOptionsContainer.innerHTML = "";
                 setTimeout(() => {
-                  // Fade out background music before leaving dialogue
-                  fadeOutAudio(bgMusic, 500);
-                  document.getElementById("dialogue-screen").classList.add("fade-out");
+                  // Fade out dialogue text before leaving dialogue screen for seamless transition
+                  dialogueTextElement.style.transition = "opacity 0.5s";
+                  dialogueTextElement.style.opacity = 0;
                   setTimeout(() => {
-                    document.getElementById("dialogue-screen").classList.remove("active", "fade-out");
-                    document.getElementById("memory-match-screen").classList.add("active", "fade-in");
-                    loadMemoryMatch();
-                  }, 600);
+                    fadeOutAudio(bgMusic, 500);
+                    document.getElementById("dialogue-screen").classList.add("fade-out");
+                    setTimeout(() => {
+                      document.getElementById("dialogue-screen").classList.remove("active", "fade-out");
+                      // Reset dialogue text opacity for next use
+                      dialogueTextElement.style.opacity = 1;
+                      document.getElementById("memory-match-screen").classList.add("active", "fade-in");
+                      loadMemoryMatch();
+                    }, 600);
+                  }, 500);
                 }, 5000);
               });
             }, 600);
