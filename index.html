@@ -21,14 +21,6 @@
       from { opacity: 1; }
       to { opacity: 0; }
     }
-    /* New: Dialogue text fade-in animation */
-    @keyframes fadeInText {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    .dialogue-fade {
-      animation: fadeInText 0.5s forwards;
-    }
     /* Final Page Styling */
     #final-screen .final-container {
       background: rgba(255,255,255,0.1);
@@ -60,7 +52,7 @@
       padding-left: env(safe-area-inset-left);
       padding-right: env(safe-area-inset-right);
     }
-    /* --- Added Modifications for Bug Fixes & iOS Compatibility --- */
+    /* --- Bug Fixes & iOS Compatibility --- */
     /* Force inactive screens to be hidden */
     .screen:not(.active) {
       display: none !important;
@@ -81,13 +73,12 @@
     #memory-match-screen.active { z-index: 130; }
     #final-screen.active { z-index: 140; }
 
-    /* New: Scale main content on iPhone (or small screens) to address magnification issues */
+    /* Scale main content on small devices (e.g., iPhone at ~75% magnification) */
     @media only screen and (max-width: 414px) {
       .main-content {
          transform: scale(0.75);
          transform-origin: top center;
       }
-      /* Also, further optimize final container readability */
       #final-screen .final-container {
         max-width: 100%;
         padding: 10px;
@@ -174,12 +165,12 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
 
     /***** AUDIO SETUP *****/
     // Background music with low volume; do not preload so Safari won’t load the entire file.
-    const bgMusic = new Audio("background music.mp3");
+    let bgMusic = new Audio("background music.mp3");
     bgMusic.preload = "none";
     bgMusic.volume = 0.2;
     bgMusic.loop = true;
     
-    const judgmentAudio = new Audio("judgement-of-knights-thunder.mp3");
+    let judgmentAudio = new Audio("judgement-of-knights-thunder.mp3");
     judgmentAudio.preload = "none";
     
     // Helper functions to fade audio in/out
@@ -198,15 +189,20 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
       }, interval);
     }
     
-    function fadeOutAudio(audio, duration) {
+    function fadeOutAudio(audio, duration, onComplete) {
       const interval = 50;
-      const step = audio.volume / (duration / interval);
+      const steps = duration / interval;
+      const step = audio.volume / steps;
+      let currentStep = 0;
+      
       const fadeOutInterval = setInterval(() => {
-        if (audio.volume > step) {
+        if (currentStep < steps && audio.volume > 0) {
           audio.volume = Math.max(audio.volume - step, 0);
+          currentStep++;
         } else {
           audio.pause();
           clearInterval(fadeOutInterval);
+          if (onComplete) onComplete();
         }
       }, interval);
     }
@@ -228,53 +224,57 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
       }, delay);
     }
     
-    // Updated sayDialogue: now uses a dedicated CSS class for fade-in.
+    // Original sayDialogue with no fade on text
     function sayDialogue(text, element, delay = 50, callback) {
-      element.classList.remove("dialogue-fade");
-      element.textContent = "";
-      typeWriter(text, element, delay, function(){
-        element.classList.add("dialogue-fade");
-        if(callback) callback();
-      });
+      typeWriter(text, element, delay, callback);
     }
     
-    // Updated Judgment sequence with fallback for iOS, fade effects for dialogue text,
-    // and stopping & unloading background music after dialogue finishes.
+    // Force-stop and unload the given audio from iOS
+    function fullyUnloadAudio(audio) {
+      // Stop if playing
+      audio.pause();
+      // Clear the src so iOS truly unloads it
+      audio.removeAttribute("src");
+      // Force the internal media resource to be reset
+      audio.load();
+    }
+    
+    // Judgment sequence with fallback for iOS, fade in/out for audio,
+    // and forcibly unloading background music after the final line.
     function playJudgmentThenDialogueSequence(element, callback) {
-      // Fade out background music before playing judgment audio
-      fadeOutAudio(bgMusic, 500);
-      judgmentAudio.play().catch(e => console.error("Judgment audio play error:", e));
+      // Fade out the background music before playing judgment audio
+      fadeOutAudio(bgMusic, 500, () => {
+        fullyUnloadAudio(bgMusic);
+      });
       
+      // Start judgment audio
+      judgmentAudio.play().catch(e => console.error("Judgment audio play error:", e));
       let judgmentAudioEnded = false;
       
       function continueDialogueSequence() {
         sayDialogue("what was that? , anyways.", element, 50, function(){
-          // Fade in background music as dialogue continues
+          // Fade in background music again for the next lines
+          bgMusic = new Audio("background music.mp3");
+          bgMusic.preload = "none";
+          bgMusic.volume = 0.2;
+          bgMusic.loop = true;
           fadeInAudio(bgMusic, 500);
+
           sayDialogue("Hmmm, maybe you do love him.", element, 50, function(){
-            // Fade out then clear dialogue text before final line
-            element.style.transition = "opacity 0.5s";
-            element.style.opacity = 0;
+            element.textContent = "";
             setTimeout(() => {
-              element.textContent = "";
-              element.style.opacity = 1; // Fade back in
-              setTimeout(() => {
-                sayDialogue("sigh.. well complete this final game. It's a memory match. Should be easy, right?", element, 50, function(){
-                  // After dialogue is complete, fade out bgMusic then unload it so Safari stops loading the entire file.
-                  fadeOutAudio(bgMusic, 500);
-                  setTimeout(() => {
-                    bgMusic.pause();
-                    bgMusic.src = "";
-                    if(callback) callback();
-                  }, 500);
+              sayDialogue("sigh.. well complete this final game. It's a memory match. Should be easy, right?", element, 50, function(){
+                // Once the final line is done, fade out and completely unload the BG music
+                fadeOutAudio(bgMusic, 500, () => {
+                  fullyUnloadAudio(bgMusic);
+                  if(callback) callback();
                 });
-              }, 500);
+              });
             }, 500);
           });
         });
       }
       
-      // Use the onended event
       judgmentAudio.onended = function() {
         if (!judgmentAudioEnded) {
           judgmentAudioEnded = true;
@@ -282,7 +282,7 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
         }
       };
 
-      // Fallback in case onended doesn't trigger (e.g., on iOS Safari)
+      // Fallback for iOS Safari if onended doesn't trigger
       setTimeout(() => {
         if (!judgmentAudioEnded) {
           judgmentAudioEnded = true;
@@ -327,7 +327,7 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
       const dialogueOptionsContainer = document.getElementById('dialogue-options');
       const dialogueResponseContainer = document.getElementById('dialogue-response-container');
       
-      // Start background music when dialogue begins (it will later be stopped after dialogue ends)
+      // Fade in the background music
       fadeInAudio(bgMusic, 500);
       
       sayDialogue('Saiki K.: "You got the passcode right, hm? sigh Figures."', dialogueTextElement, 30);
@@ -374,7 +374,9 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
                   document.getElementById("dialogue-screen").classList.add("fade-out");
                   setTimeout(() => {
                     // Fade out background music before leaving dialogue
-                    fadeOutAudio(bgMusic, 500);
+                    fadeOutAudio(bgMusic, 500, () => {
+                      fullyUnloadAudio(bgMusic);
+                    });
                     document.getElementById("dialogue-screen").classList.remove("active", "fade-out");
                     document.getElementById("quiz-screen").classList.add("active", "fade-in");
                     loadQuiz();
@@ -473,20 +475,16 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
               playJudgmentThenDialogueSequence(dialogueTextElement, function(){
                 dialogueOptionsContainer.innerHTML = "";
                 setTimeout(() => {
-                  // Fade out dialogue text before leaving dialogue screen for seamless transition
-                  dialogueTextElement.style.transition = "opacity 0.5s";
-                  dialogueTextElement.style.opacity = 0;
+                  // Final fade-out of BG music, then memory match
+                  fadeOutAudio(bgMusic, 500, () => {
+                    fullyUnloadAudio(bgMusic);
+                  });
+                  document.getElementById("dialogue-screen").classList.add("fade-out");
                   setTimeout(() => {
-                    fadeOutAudio(bgMusic, 500);
-                    document.getElementById("dialogue-screen").classList.add("fade-out");
-                    setTimeout(() => {
-                      document.getElementById("dialogue-screen").classList.remove("active", "fade-out");
-                      // Reset dialogue text opacity for next use
-                      dialogueTextElement.style.opacity = 1;
-                      document.getElementById("memory-match-screen").classList.add("active", "fade-in");
-                      loadMemoryMatch();
-                    }, 600);
-                  }, 500);
+                    document.getElementById("dialogue-screen").classList.remove("active", "fade-out");
+                    document.getElementById("memory-match-screen").classList.add("active", "fade-in");
+                    loadMemoryMatch();
+                  }, 600);
                 }, 5000);
               });
             }, 600);
@@ -497,7 +495,6 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
         showErrorComment(errorComment);
         setTimeout(() => {
           li.classList.remove("incorrect");
-          // Allow wrong answer to be tried again immediately.
         }, 1500);
       }
     }
