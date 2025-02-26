@@ -72,6 +72,15 @@
     #quiz-screen.active { z-index: 120; }
     #memory-match-screen.active { z-index: 130; }
     #final-screen.active { z-index: 140; }
+
+    /* Media Query for iOS: Scale down the final page for smaller screens */
+    @media only screen and (max-width: 414px) {
+      #final-screen .final-container {
+        max-width: 100%;
+        padding: 10px;
+        font-size: 16px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -151,12 +160,14 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
     window.addEventListener('resize', setVh);
 
     /***** AUDIO SETUP *****/
-    // Background music with low volume
+    // Background music with low volume; do not preload so Safari doesn’t load the entire file.
     const bgMusic = new Audio("background music.mp3");
-    bgMusic.volume = 0.2; // low volume
+    bgMusic.preload = "none";
+    bgMusic.volume = 0.2;
     bgMusic.loop = true;
     
     const judgmentAudio = new Audio("judgement-of-knights-thunder.mp3");
+    judgmentAudio.preload = "none";
     
     // Helper functions to fade audio in/out
     function fadeInAudio(audio, duration) {
@@ -204,21 +215,26 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
       }, delay);
     }
     
-    // sayDialogue: plays the dialogue text
+    // Updated sayDialogue: fades in dialogue text when it appears.
     function sayDialogue(text, element, delay = 50, callback) {
-      typeWriter(text, element, delay, callback);
+      element.style.opacity = 0;
+      typeWriter(text, element, delay, function(){
+        element.style.transition = "opacity 0.5s";
+        element.style.opacity = 1;
+        if(callback) callback();
+      });
     }
     
-    // Updated Judgment sequence with fallback for iOS and fade effects for dialogue text.
+    // Updated Judgment sequence with fallback for iOS, fade effects for dialogue text,
+    // and stopping background music after the dialogue finishes.
     function playJudgmentThenDialogueSequence(element, callback) {
-      // Fade out the background music before playing judgment audio
+      // Fade out background music before playing judgment audio
       fadeOutAudio(bgMusic, 500);
       judgmentAudio.play().catch(e => console.error("Judgment audio play error:", e));
       
       let judgmentAudioEnded = false;
       
       function continueDialogueSequence() {
-        // Fade in dialogue text with a fade-out then fade-in effect
         sayDialogue("what was that? , anyways.", element, 50, function(){
           // Fade in background music as dialogue continues
           fadeInAudio(bgMusic, 500);
@@ -230,7 +246,11 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
               element.textContent = "";
               element.style.opacity = 1; // Fade back in
               setTimeout(() => {
-                sayDialogue("sigh.. well complete this final game. It's a memory match. Should be easy, right?", element, 50, callback);
+                sayDialogue("sigh.. well complete this final game. It's a memory match. Should be easy, right?", element, 50, function(){
+                  // After dialogue is complete, fade out the background music permanently.
+                  fadeOutAudio(bgMusic, 500);
+                  if(callback) callback();
+                });
               }, 500);
             }, 500);
           });
@@ -290,7 +310,7 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
       const dialogueOptionsContainer = document.getElementById('dialogue-options');
       const dialogueResponseContainer = document.getElementById('dialogue-response-container');
       
-      // Start background music when dialogue begins
+      // Start background music when dialogue begins (it will later be stopped after dialogue ends)
       fadeInAudio(bgMusic, 500);
       
       sayDialogue('Saiki K.: "You got the passcode right, hm? sigh Figures."', dialogueTextElement, 30);
