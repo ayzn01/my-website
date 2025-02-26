@@ -21,6 +21,14 @@
       from { opacity: 1; }
       to { opacity: 0; }
     }
+    /* New: Dialogue text fade-in animation */
+    @keyframes fadeInText {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .dialogue-fade {
+      animation: fadeInText 0.5s forwards;
+    }
     /* Final Page Styling */
     #final-screen .final-container {
       background: rgba(255,255,255,0.1);
@@ -73,8 +81,13 @@
     #memory-match-screen.active { z-index: 130; }
     #final-screen.active { z-index: 140; }
 
-    /* Media Query for iOS: Scale down the final page for smaller screens */
+    /* New: Scale main content on iPhone (or small screens) to address magnification issues */
     @media only screen and (max-width: 414px) {
+      .main-content {
+         transform: scale(0.75);
+         transform-origin: top center;
+      }
+      /* Also, further optimize final container readability */
       #final-screen .final-container {
         max-width: 100%;
         padding: 10px;
@@ -160,7 +173,7 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
     window.addEventListener('resize', setVh);
 
     /***** AUDIO SETUP *****/
-    // Background music with low volume; do not preload so Safari doesn’t load the entire file.
+    // Background music with low volume; do not preload so Safari won’t load the entire file.
     const bgMusic = new Audio("background music.mp3");
     bgMusic.preload = "none";
     bgMusic.volume = 0.2;
@@ -215,18 +228,18 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
       }, delay);
     }
     
-    // Updated sayDialogue: fades in dialogue text when it appears.
+    // Updated sayDialogue: now uses a dedicated CSS class for fade-in.
     function sayDialogue(text, element, delay = 50, callback) {
-      element.style.opacity = 0;
+      element.classList.remove("dialogue-fade");
+      element.textContent = "";
       typeWriter(text, element, delay, function(){
-        element.style.transition = "opacity 0.5s";
-        element.style.opacity = 1;
+        element.classList.add("dialogue-fade");
         if(callback) callback();
       });
     }
     
     // Updated Judgment sequence with fallback for iOS, fade effects for dialogue text,
-    // and stopping background music after the dialogue finishes.
+    // and stopping & unloading background music after dialogue finishes.
     function playJudgmentThenDialogueSequence(element, callback) {
       // Fade out background music before playing judgment audio
       fadeOutAudio(bgMusic, 500);
@@ -239,7 +252,7 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
           // Fade in background music as dialogue continues
           fadeInAudio(bgMusic, 500);
           sayDialogue("Hmmm, maybe you do love him.", element, 50, function(){
-            // Apply fade out/in effect on dialogue text before final line
+            // Fade out then clear dialogue text before final line
             element.style.transition = "opacity 0.5s";
             element.style.opacity = 0;
             setTimeout(() => {
@@ -247,9 +260,13 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
               element.style.opacity = 1; // Fade back in
               setTimeout(() => {
                 sayDialogue("sigh.. well complete this final game. It's a memory match. Should be easy, right?", element, 50, function(){
-                  // After dialogue is complete, fade out the background music permanently.
+                  // After dialogue is complete, fade out bgMusic then unload it so Safari stops loading the entire file.
                   fadeOutAudio(bgMusic, 500);
-                  if(callback) callback();
+                  setTimeout(() => {
+                    bgMusic.pause();
+                    bgMusic.src = "";
+                    if(callback) callback();
+                  }, 500);
                 });
               }, 500);
             }, 500);
@@ -271,7 +288,7 @@ Thank you for being you baby and for choosing to grow, to heal, and to love with
           judgmentAudioEnded = true;
           continueDialogueSequence();
         }
-      }, 7000); // Adjust timeout as needed
+      }, 7000);
     }
     
     /***** GLOBAL ERROR RESPONSES *****/
