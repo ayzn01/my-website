@@ -25,6 +25,7 @@
     #final-screen .final-container {
       background: rgba(255,255,255,0.1);
       border: 1px solid rgba(255,255,255,0.2);
+      -webkit-backdrop-filter: blur(10px);
       backdrop-filter: blur(10px);
       border-radius: 16px;
       padding: 20px;
@@ -39,15 +40,19 @@
       margin-bottom: 20px;
       white-space: pre-wrap;
     }
-    /* Ensure full-screen display */
+    /* Ensure full-screen display with safe area insets for iOS */
     html, body {
       width: 100%;
       height: 100%;
       overflow: hidden;
       margin: 0;
       padding: 0;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
     }
-    /* --- Added Modifications for Bug Fixes --- */
+    /* --- Added Modifications for Bug Fixes & iOS Compatibility --- */
     /* Force inactive screens to be hidden */
     .screen:not(.active) {
       display: none !important;
@@ -59,6 +64,7 @@
       left: 0;
       width: 100%;
       height: 100%;
+      will-change: opacity;
     }
     /* Define stacking order so newer screens come on top */
     #passcode-screen.active { z-index: 100; }
