@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kuromi Love Journey</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* Additional fade-in and fade-out classes for screens */
+    .fade-in {
+      animation: fadeInScreen 0.5s forwards;
+    }
+    .fade-out {
+      animation: fadeOutScreen 0.5s forwards;
+    }
+    @keyframes fadeInScreen {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes fadeOutScreen {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    /* Final Page Styling */
+    #final-screen .final-container {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 20px;
+      max-width: 800px;
+      text-align: center;
+      color: #fff;
+      margin: 0 auto;
+    }
+    #final-screen .final-message {
+      font-size: 18px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      white-space: pre-wrap;
+    }
+    /* Ensure full-screen display */
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+    }
+    /* --- Added Modifications for Bug Fixes --- */
+    /* Force inactive screens to be hidden */
+    .screen:not(.active) {
+      display: none !important;
+    }
+    /* Ensure every screen covers the full viewport */
+    .screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    /* Define stacking order so newer screens come on top */
+    #passcode-screen.active { z-index: 100; }
+    #dialogue-screen.active { z-index: 110; }
+    #quiz-screen.active { z-index: 120; }
+    #memory-match-screen.active { z-index: 130; }
+    #final-screen.active { z-index: 140; }
+  </style>
+</head>
+<body>
+  <!-- Animated Background -->
+  <div class="shape shape-one"></div>
+  <div class="shape shape-two"></div>
+  <div class="shape shape-three"></div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Passcode Screen -->
+    <div class="screen active" id="passcode-screen">
+      <input type="password" class="passcode-input" id="passcode-input" placeholder="Enter Passcode" maxlength="4" />
+    </div>
+
+    <!-- Dialogue Screen -->
+    <div class="screen" id="dialogue-screen">
+      <div class="dialogue-container">
+        <div class="dialogue-header-container">
+          <div class="dialogue-avatar">
+            <img src="https://i.redd.it/17q3m7ndae261.jpg" alt="Saiki Avatar">
+          </div>
+          <div class="dialogue-header">Saiki K.</div>
+        </div>
+        <div class="dialogue-text-container">
+          <div class="dialogue-text" id="dialogue-text"></div>
+        </div>
+        <div class="dialogue-options" id="dialogue-options"></div>
+        <div class="dialogue-response-container" id="dialogue-response-container"></div>
+      </div>
+    </div>
+
+    <!-- Quiz Screen -->
+    <div class="screen" id="quiz-screen">
+      <div class="quiz-container">
+        <div class="quiz-question" id="question-text"></div>
+        <ul class="quiz-options" id="options-list"></ul>
+        <div class="error-comment" id="error-comment"></div>
+      </div>
+    </div>
+
+    <!-- Memory Game Screen -->
+    <div class="screen" id="memory-match-screen">
+      <div class="game-grid" id="game-grid"></div>
+    </div>
+
+    <!-- Final Screen -->
+    <div class="screen" id="final-screen">
+      <div class="final-container">
+        <p class="final-message">
+my dear baby,
+
+as you read these words just know that every moment I’ve spent, every late night, every line of code, every detail was all for us. I poured my heart into this and not just as a project, but as a promise to you, a promise that my love for you runs deeper than anything you can imagine. 
+
+I see you growing every day, becoming more mature, resilient, and beautiful in every way. Your strength, your passion for self improvement, and the way you face every challenge just inspire me beyond words baby I love everything about you. Your captivating eyes, your beautiful curly hair to your lustrous straight hair that frames your face so perfectly always leaving me in awe and your cute adorable cheeks that give such an angelic glow and your smile that always lights up my world and every little detail that makes sana, sana.
+
+Our love isn’t built on perfection baby it’s built on all our struggles and and accomplishments together we have overcome sm together, and every trial has only deepened the bond we share. I want you to feel safe and free to express your love, knowing that our connection is pure and unbreakable and a bond that no one can come between.
+
+I promise to always stand by you, to honour your growth and nurture the rare extraordinary love we have, I believe in us, in the trust and respect that hold us together, and I’m committed to building a future where nothing ever shakes our foundation
+
+Thank you for being you baby and for choosing to grow, to heal, and to love with a depth that transforms both of us. I love you more than words can say, baby, and I will do everything in my power to make sure you always feel cherished, respected, and free to love me back with all your heart.
+        </p>
+        <div class="spotify-embed">
+          <iframe style="border-radius:12px" src="https://open.spotify.com/embed/track/02K01fxmK5qQrwWSHGbb9d?utm_source=generator" width="100%" height="152" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /***** iOS Viewport Fix *****/
+    function setVh() {
+      let vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    setVh();
+    window.addEventListener('resize', setVh);
+
+    /***** AUDIO SETUP *****/
+    // Background music with low volume
+    const bgMusic = new Audio("background music.mp3");
+    bgMusic.volume = 0.2; // low volume
+    bgMusic.loop = true;
+    
+    const judgmentAudio = new Audio("judgement-of-knights-thunder.mp3");
+    
+    // Helper functions to fade audio in/out
+    function fadeInAudio(audio, duration) {
+      const targetVolume = audio === bgMusic ? 0.2 : (audio.volume || 1.0);
+      const interval = 50;
+      const step = targetVolume / (duration / interval);
+      audio.volume = 0;
+      audio.play().catch(e => console.error("Audio play error:", e));
+      const fadeInInterval = setInterval(() => {
+        if (audio.volume < targetVolume) {
+          audio.volume = Math.min(audio.volume + step, targetVolume);
+        } else {
+          clearInterval(fadeInInterval);
+        }
+      }, interval);
+    }
+    
+    function fadeOutAudio(audio, duration) {
+      const interval = 50;
+      const step = audio.volume / (duration / interval);
+      const fadeOutInterval = setInterval(() => {
+        if (audio.volume > step) {
+          audio.volume = Math.max(audio.volume - step, 0);
+        } else {
+          audio.pause();
+          clearInterval(fadeOutInterval);
+        }
+      }, interval);
+    }
+    
+    /***** TYPEWRITER EFFECT *****/
+    function typeWriter(text, element, delay = 50, callback) {
+      if (element.typingInterval) clearInterval(element.typingInterval);
+      element.textContent = "";
+      let index = 0;
+      element.typingInterval = setInterval(() => {
+        if (index < text.length) {
+          element.textContent += text.charAt(index);
+          index++;
+        } else {
+          clearInterval(element.typingInterval);
+          element.typingInterval = null;
+          if (callback) callback();
+        }
+      }, delay);
+    }
+    
+    // sayDialogue: plays the dialogue text
+    function sayDialogue(text, element, delay = 50, callback) {
+      typeWriter(text, element, delay, callback);
+    }
+    
+    // Judgment sequence with background music adjustments:
+    function playJudgmentThenDialogueSequence(element, callback) {
+      // Fade out the background music before playing judgment audio
+      fadeOutAudio(bgMusic, 500);
+      judgmentAudio.play().catch(e => console.error("Judgment audio play error:", e));
+      // Wait for judgment audio to finish before continuing:
+      judgmentAudio.onended = function() {
+        // First, have Saiki say the extra line:
+        sayDialogue("what was that? , anyways.", element, 50, function(){
+          // Then fade in background music as Saiki speaks and continue with his dialogue:
+          fadeInAudio(bgMusic, 500);
+          sayDialogue("Hmmm, maybe you do love him.", element, 50, function(){
+            element.textContent = "";
+            setTimeout(() => {
+              sayDialogue("sigh.. well complete this final game. It's a memory match. Should be easy, right?", element, 50, callback);
+            }, 500);
+          });
+        });
+      };
+    }
+    
+    /***** GLOBAL ERROR RESPONSES *****/
+    let errorResponses = [
+      'Saiki K.: "Come on, Sana, I thought you knew this stuff. sigh"',
+      'Saiki K.: "Sana, seriously? I thought you loved him more. facepalm"',
+      'Saiki K.: "Sana, you\'re kidding, right? sigh I mean, really?"',
+      'Saiki K.: "Sana, this is basic. What\'s going on? deadpan"',
+      'Saiki K.: "Sana, I expected better. facepalm You can do better than this."',
+      'Saiki K.: "Sana, you call this love? sigh I’ve seen more commitment in a goldfish."',
+      'Saiki K.: "Sana, you’re supposed to know these things. sigh It’s not rocket science."',
+      'Saiki K.: "Sana, are you even paying attention? deadpan This is your husband we’re talking about."',
+      'Saiki K.: "Sana, I thought you had this. sigh Guess not."',
+      'Saiki K.: "Sana, you’re better than this. sigh Try harder next time."',
+      'Saiki K.: "Sana, this is embarrassing. sigh I thought you knew him better."',
+      'Saiki K.: "Sana, I’m disappointed. facepalm You can do better."',
+      'Saiki K.: "Sana, you’re not even trying, are you? sigh Come on."',
+      'Saiki K.: "Sana, this is a no-brainer. deadpan What’s the deal?"',
+      'Saiki K.: "Sana, you’re supposed to be the love expert here. sigh What happened?"',
+      'Saiki K.: "Sana, I thought you had a better memory. sigh Guess not."',
+      'Saiki K.: "Sana, this is basic relationship stuff. sigh Get it together."',
+      'Saiki K.: "Sana, you’re slipping. facepalm I thought you were better than this."',
+      'Saiki K.: "Sana, you’re supposed to know this. sigh What’s going on?"',
+      'Saiki K.: "Sana, I thought you were paying attention. sigh Clearly not."',
+      'Saiki K.: "Sana, you’re better than this. sigh Try again."',
+      'Saiki K.: "Sana, this is a simple question. deadpan What’s the problem?"',
+      'Saiki K.: "Sana, I thought you were more committed. sigh Guess not."',
+      'Saiki K.: "Sana, you’re supposed to know these things. sigh It’s not that hard."',
+      'Saiki K.: "Sana, you’re not fooling anyone. sigh I thought you loved him more."'
+    ];
+    
+    /***** INTERACTIVE DIALOGUE *****/
+    let isQuizAnimating = false; // Flag for correct answer animation
+    function startInteractiveDialogue() {
+      const dialogueTextElement = document.getElementById('dialogue-text');
+      const dialogueOptionsContainer = document.getElementById('dialogue-options');
+      const dialogueResponseContainer = document.getElementById('dialogue-response-container');
+      
+      // Start background music when dialogue begins
+      fadeInAudio(bgMusic, 500);
+      
+      sayDialogue('Saiki K.: "You got the passcode right, hm? sigh Figures."', dialogueTextElement, 30);
+    
+      dialogueOptionsContainer.innerHTML = "";
+      dialogueResponseContainer.innerHTML = "";
+    
+      setTimeout(() => {
+        const options = [
+          {
+            text: "i love my husband of course i got it right",
+            response: 'Oh, the power of love. How touching. I\'m sure your husband is thrilled to know that his security measures are as strong as your feelings for him.'
+          },
+          {
+            text: "yes i did.",
+            response: 'Yes, you did. sigh Well, that\'s one less thing to worry about today. I mean, it\'s not like getting the passcode right is a major achievement or anything. Just don’t get too cocky, okay?'
+          },
+          {
+            text: "die you skibidi fart i hope you die",
+            response: 'Die you skibidi fart, I hope you die? facepalm Wow, that\'s... creative. sigh I guess I should be flattered that you\'re so passionate about my demise. But seriously, can we maybe keep the death threats to a minimum?'
+          }
+        ];
+        dialogueOptionsContainer.innerHTML = "";
+        options.forEach((option) => {
+          const btn = document.createElement("div");
+          btn.className = "dialogue-option";
+          btn.textContent = option.text;
+          btn.addEventListener("click", () => {
+            const userResponse = document.createElement("div");
+            userResponse.textContent = `Me: ${option.text}`;
+            userResponse.classList.add("dialogue-response", "user-message");
+            dialogueResponseContainer.appendChild(userResponse);
+    
+            dialogueOptionsContainer.childNodes.forEach((child) => {
+              child.classList.add("fade-out");
+            });
+            setTimeout(() => {
+              dialogueOptionsContainer.innerHTML = "";
+            }, 600);
+    
+            sayDialogue(option.response, dialogueTextElement, 50, function(){
+              setTimeout(() => {
+                sayDialogue("Now, time for some questions. Let's see if you really do love him. sigh I mean, it's not like I have anything better to do with my psychic abilities. deadpan But seriously, let's get this over with.", dialogueTextElement, 50, function(){
+                  document.getElementById("dialogue-screen").classList.add("fade-out");
+                  setTimeout(() => {
+                    // Fade out background music before leaving dialogue
+                    fadeOutAudio(bgMusic, 500);
+                    document.getElementById("dialogue-screen").classList.remove("active", "fade-out");
+                    document.getElementById("quiz-screen").classList.add("active", "fade-in");
+                    loadQuiz();
+                  }, 600);
+                });
+              }, 2000);
+            });
+          });
+          dialogueOptionsContainer.appendChild(btn);
+        });
+      }, 2000);
+    }
+    
+    /***** QUIZ SECTION *****/
+    const questions = [
+      {
+        question: "What is azhans favourite colour?",
+        options: ["green", "blue", "black", "orange", "red"],
+        correctAnswer: "green"
+      },
+      {
+        question: "Who is azhans favourite comfort character?",
+        options: ["batman", "miles morales", "jake peralta", "saiki"],
+        correctAnswer: "jake peralta"
+      },
+      {
+        question: "Who does azhans love most in the whole wide world?",
+        options: ["his mother", "saiki", "kanye", "MY BABY (sana.)"],
+        correctAnswer: "MY BABY (sana.)"
+      },
+      {
+        question: "Who is the most auraliscious aura farmer to date?",
+        options: ["Ayzen Mustafa", "Someone else", "Another person", "Yet another person"],
+        correctAnswer: "Ayzen Mustafa"
+      },
+      {
+        question: "What’s the first thing azhans does when he wakes up in the morning?",
+        options: ["stare into the ceiling", "look straight to his phone to see if Sana messaged", "stretch", "try to go back to sleep straight away"],
+        correctAnswer: "look straight to his phone to see if Sana messaged",
+        extraResponse: "Damn, he is in love with you. sigh I guess some people just can't help themselves."
+      },
+      {
+        question: "FINAL QUESTION: What’s the one piece of advice azhans gives to others all the time?",
+        options: ["actions speak louder than words", "Surround yourself with people who lift you higher", "Learn from your failure, it’s how we grow.", "Apologize when you’re wrong, even if it’s hard", "Value quality over quantity in friendships."],
+        correctAnswer: "actions speak louder than words",
+        extraResponse: "They do. sigh But sometimes, the loudest actions are the ones that go unnoticed."
+      }
+    ];
+    
+    let currentQuestionIndex = 0;
+    function loadQuiz() {
+      currentQuestionIndex = 0;
+      displayQuestion();
+    }
+    
+    function displayQuestion() {
+      const questionText = document.getElementById("question-text");
+      const optionsList = document.getElementById("options-list");
+      const errorComment = document.getElementById("error-comment");
+      errorComment.style.display = "none";
+      typeWriter(questions[currentQuestionIndex].question, questionText, 50);
+      optionsList.innerHTML = "";
+      questions[currentQuestionIndex].options.forEach((option) => {
+        const li = document.createElement("li");
+        li.textContent = option;
+        li.addEventListener("click", () => checkAnswer(option, li));
+        optionsList.appendChild(li);
+      });
+    }
+    
+    function checkAnswer(answer, li) {
+      const errorComment = document.getElementById("error-comment");
+      if (answer === questions[currentQuestionIndex].correctAnswer) {
+        if (isQuizAnimating) return;
+        isQuizAnimating = true;
+        li.classList.add("correct");
+        if (questions[currentQuestionIndex].extraResponse) {
+          const extraDiv = document.createElement("div");
+          extraDiv.className = "extra-response";
+          typeWriter(questions[currentQuestionIndex].extraResponse, extraDiv, 50);
+          li.appendChild(extraDiv);
+        }
+        let delay = (currentQuestionIndex === 4 || currentQuestionIndex === 5) ? 4500 : 1000;
+        setTimeout(() => {
+          currentQuestionIndex++;
+          if (currentQuestionIndex < questions.length) {
+            displayQuestion();
+            isQuizAnimating = false;
+          } else {
+            const dialogueTextElement = document.getElementById("dialogue-text");
+            const dialogueOptionsContainer = document.getElementById("dialogue-options");
+            document.getElementById("quiz-screen").classList.add("fade-out");
+            setTimeout(() => {
+              document.getElementById("quiz-screen").classList.remove("active", "fade-out");
+              document.getElementById("dialogue-screen").classList.add("active", "fade-in");
+              playJudgmentThenDialogueSequence(dialogueTextElement, function(){
+                dialogueOptionsContainer.innerHTML = "";
+                setTimeout(() => {
+                  // Fade out background music before leaving dialogue
+                  fadeOutAudio(bgMusic, 500);
+                  document.getElementById("dialogue-screen").classList.add("fade-out");
+                  setTimeout(() => {
+                    document.getElementById("dialogue-screen").classList.remove("active", "fade-out");
+                    document.getElementById("memory-match-screen").classList.add("active", "fade-in");
+                    loadMemoryMatch();
+                  }, 600);
+                }, 5000);
+              });
+            }, 600);
+          }
+        }, delay);
+      } else {
+        li.classList.add("incorrect");
+        showErrorComment(errorComment);
+        setTimeout(() => {
+          li.classList.remove("incorrect");
+          // Allow wrong answer to be tried again immediately.
+        }, 1500);
+      }
+    }
+    
+    function showErrorComment(container) {
+      if (errorResponses.length === 0) {
+        errorResponses = [
+          'Saiki K.: "Come on, Sana, I thought you knew this stuff. sigh"',
+          'Saiki K.: "Sana, seriously? I thought you loved him more. facepalm"',
+          'Saiki K.: "Sana, you\'re kidding, right? sigh I mean, really?"',
+          'Saiki K.: "Sana, this is basic. What\'s going on? deadpan"',
+          'Saiki K.: "Sana, I expected better. facepalm You can do better than this."',
+          'Saiki K.: "Sana, you call this love? sigh I’ve seen more commitment in a goldfish."',
+          'Saiki K.: "Sana, you’re supposed to know these things. sigh It’s not rocket science."',
+          'Saiki K.: "Sana, are you even paying attention? deadpan This is your husband we’re talking about."',
+          'Saiki K.: "Sana, I thought you had this. sigh Guess not."',
+          'Saiki K.: "Sana, you’re better than this. sigh Try harder next time."',
+          'Saiki K.: "Sana, this is embarrassing. sigh I thought you knew him better."',
+          'Saiki K.: "Sana, I’m disappointed. facepalm You can do better."',
+          'Saiki K.: "Sana, you’re not even trying, are you? sigh Come on."',
+          'Saiki K.: "Sana, this is a no-brainer. deadpan What’s the deal?"',
+          'Saiki K.: "Sana, you’re supposed to be the love expert here. sigh What happened?"',
+          'Saiki K.: "Sana, I thought you had a better memory. sigh Guess not."',
+          'Saiki K.: "Sana, this is basic relationship stuff. sigh Get it together."',
+          'Saiki K.: "Sana, you’re slipping. facepalm I thought you were better than this."',
+          'Saiki K.: "Sana, you’re supposed to know this. sigh What’s going on?"',
+          'Saiki K.: "Sana, I thought you were paying attention. sigh Clearly not."',
+          'Saiki K.: "Sana, you’re better than this. sigh Try again."',
+          'Saiki K.: "Sana, this is a simple question. deadpan What’s the problem?"',
+          'Saiki K.: "Sana, I thought you were more committed. sigh Guess not."',
+          'Saiki K.: "Sana, you’re supposed to know these things. sigh It’s not that hard."',
+          'Saiki K.: "Sana, you’re not fooling anyone. sigh I thought you loved him more."'
+        ];
+      }
+      const randomIndex = Math.floor(Math.random() * errorResponses.length);
+      const errorText = errorResponses[randomIndex];
+      const speechBox = document.createElement("div");
+      speechBox.className = "saiki-error-message";
+      const avatar = document.createElement("img");
+      avatar.src = "https://i.redd.it/17q3m7ndae261.jpg";
+      avatar.alt = "Saiki Avatar";
+      const textSpan = document.createElement("span");
+      textSpan.textContent = errorText;
+      speechBox.appendChild(avatar);
+      speechBox.appendChild(textSpan);
+      
+      container.innerHTML = "";
+      container.appendChild(speechBox);
+      container.style.display = "block";
+      errorResponses.splice(randomIndex, 1);
+      setTimeout(() => {
+        container.style.display = "none";
+      }, 4000);
+    }
+    
+    /***** MEMORY MATCH GAME *****/
+    const cardMapping = {
+      "apple": "https://i.pinimg.com/736x/22/27/1a/22271a36088cb9a39dc9fb44a027f56c.jpg",
+      "banana": "https://i.pinimg.com/1200x/20/97/07/209707ff72862974a095ef319dcb3721.jpg",
+      "grapes": "https://i.pinimg.com/736x/dc/c7/ae/dcc7aeceeb3a197ab521e6e95dbbca8d.jpg",
+      "orange": "https://dk2dv4ezy246u.cloudfront.net/widgets/sLje4ldnc1k_large.jpg",
+      "strawberry": "https://i.pinimg.com/736x/be/4e/e5/be4ee520a20e9193eedde72b9a30a406.jpg",
+      "watermelon": "https://art.pixilart.com/sr2b755b586b0bf.png"
+    };
+    
+    function loadMemoryMatch() {
+      const cardValues = ["apple", "banana", "grapes", "orange", "strawberry", "watermelon"];
+      const cards = [...cardValues, ...cardValues];
+      let flippedCards = [];
+      let matchedPairs = 0;
+    
+      function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+      }
+    
+      function createGameGrid() {
+        shuffle(cards);
+        const gameGrid = document.getElementById("game-grid");
+        gameGrid.innerHTML = "";
+        cards.forEach((value) => {
+          const card = document.createElement("div");
+          card.classList.add("card");
+          card.dataset.value = value;
+          card.addEventListener("click", flipCard);
+          gameGrid.appendChild(card);
+        });
+      }
+    
+      function flipCard(event) {
+        const card = event.target.closest(".card");
+        if (!card) return;
+        if (flippedCards.length < 2 && !card.classList.contains("flipped")) {
+          card.classList.add("flipped");
+          card.innerHTML = `<img src="${cardMapping[card.dataset.value]}" alt="${card.dataset.value}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`;
+          flippedCards.push(card);
+          if (flippedCards.length === 2) {
+            checkMatch();
+          }
+        }
+      }
+    
+      function checkMatch() {
+        const [card1, card2] = flippedCards;
+        if (card1.dataset.value === card2.dataset.value) {
+          matchedPairs++;
+          if (matchedPairs === cardValues.length) {
+            setTimeout(finalPageSequence, 500);
+          }
+        } else {
+          setTimeout(() => {
+            card1.innerHTML = "";
+            card2.innerHTML = "";
+            card1.classList.remove("flipped");
+            card2.classList.remove("flipped");
+          }, 800);
+        }
+        flippedCards = [];
+      }
+    
+      createGameGrid();
+    }
+    
+    /***** FINAL PAGE TRANSITION *****/
+    function finalPageSequence() {
+      document.getElementById("memory-match-screen").classList.add("fade-out");
+      setTimeout(() => {
+        document.getElementById("memory-match-screen").classList.remove("active", "fade-out");
+        document.getElementById("final-screen").classList.add("active", "fade-in");
+      }, 1000);
+    }
+    
+    /***** PASSCODE SCREEN LOGIC *****/
+    const passcodeInput = document.getElementById("passcode-input");
+    const passcodeScreen = document.getElementById("passcode-screen");
+    const dialogueScreen = document.getElementById("dialogue-screen");
+    
+    passcodeInput.addEventListener("input", () => {
+      if (passcodeInput.value === "0910") {
+        // Clear the input so the password doesn't linger
+        passcodeInput.value = "";
+        passcodeScreen.classList.add("fade-out");
+        setTimeout(() => {
+          passcodeScreen.classList.remove("active", "fade-out");
+          dialogueScreen.classList.add("active", "fade-in");
+          startInteractiveDialogue();
+        }, 500);
+      }
+    });
+  </script>
+</body>
+</html>
